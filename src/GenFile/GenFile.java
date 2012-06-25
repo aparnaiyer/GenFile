@@ -8,7 +8,7 @@ import java.util.Random;
 /**
  * Generates randomly filled files of a specified name and size.
  * @author Warren Gray
- * @version 1.0
+ * @version 1.1
  */
 public class GenFile {
 
@@ -17,6 +17,7 @@ public class GenFile {
 		// Set up defaults.
 		String fileName = "file.out";
 		int fileSize = 1024;
+		int chunkSize = 1024 * 1024 * 100;
 		
 		// Override defaults, if applicable.
 		if (args.length >= 1){
@@ -27,8 +28,12 @@ public class GenFile {
 			fileSize = Integer.parseInt(args[1]);
 		}
 		
+		if (args.length >= 3){
+			chunkSize = Integer.parseInt(args[2]);
+		}		
+		
 		// Create the file.
-		createFile(fileName, fileSize);
+		createFile(fileName, fileSize, chunkSize);
 		System.exit(0);
 	}
 	
@@ -37,19 +42,36 @@ public class GenFile {
 	 * @param fileName - the file path to create a file for.
 	 * @param fileSize - the size of the file to create.
 	 */
-	public static void createFile(String fileName, int fileSize){
+	public static void createFile(String fileName, int fileSize, int maxMem){
 		System.out.println("Creating file " + fileName + " of size " + fileSize + " byte(s).");
 		
-		// Generate random bytes.
-		byte[] bytes = new byte[fileSize]; 
+		byte[] bytes = new byte[maxMem]; 
 		Random rng = new Random();
 		rng.nextBytes(bytes);
 		
 		// Write bytes to file.
 		FileOutputStream fos = null;
 		try{
+			int numBytesLeft = fileSize;
 			fos = new FileOutputStream(fileName);
-			fos.write(bytes);
+			while(true){
+				
+				// If we have less than maxMem left to write, simply redeclare the array
+				// to preserve the exact bytes specified in the arguments.
+				if (numBytesLeft < maxMem){
+					bytes = new byte[numBytesLeft];
+				}
+				
+				// Fill the byte array with random data and write it to the file.
+				rng.nextBytes(bytes);
+				fos.write(bytes);
+				
+				// Reduce the number of bytes left to write and stop looping if necessary.
+				numBytesLeft -= maxMem;
+				if (numBytesLeft <= 0){
+					break;
+				}
+			}
 			fos.close();
 		}catch (FileNotFoundException e){
 			System.err.println("Could not open " + fileName + " for editing: " + e.getMessage());
