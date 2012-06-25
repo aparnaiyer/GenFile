@@ -16,7 +16,7 @@ public class GenFile {
 
 		// Set up defaults.
 		String fileName = "file.out";
-		int fileSize = 1024;
+		long fileSize = 1024;
 		int chunkSize = 1024 * 1024 * 100;
 		
 		// Override defaults, if applicable.
@@ -25,11 +25,15 @@ public class GenFile {
 		}
 		
 		if (args.length >= 2){
-			fileSize = Integer.parseInt(args[1]);
+			fileSize = Long.parseLong(args[1]);
 		}
 		
 		if (args.length >= 3){
-			chunkSize = Integer.parseInt(args[2]);
+			try{
+				chunkSize = Integer.parseInt(args[2]);
+			}catch (NumberFormatException e){
+				System.err.println("Invalid chunk size. Using 100MB default.");
+			}
 		}		
 		
 		// Create the file.
@@ -42,7 +46,7 @@ public class GenFile {
 	 * @param fileName - the file path to create a file for.
 	 * @param fileSize - the size of the file to create.
 	 */
-	public static void createFile(String fileName, int fileSize, int maxMem){
+	public static void createFile(String fileName, long fileSize, int maxMem){
 		System.out.println("Creating file " + fileName + " of size " + fileSize + " byte(s).");
 		
 		byte[] bytes = new byte[maxMem]; 
@@ -52,14 +56,14 @@ public class GenFile {
 		// Write bytes to file.
 		FileOutputStream fos = null;
 		try{
-			int numBytesLeft = fileSize;
+			long numBytesLeft = fileSize;
 			fos = new FileOutputStream(fileName);
 			while(true){
 				
 				// If we have less than maxMem left to write, simply redeclare the array
 				// to preserve the exact bytes specified in the arguments.
 				if (numBytesLeft < maxMem){
-					bytes = new byte[numBytesLeft];
+					bytes = new byte[(int)numBytesLeft];
 				}
 				
 				// Fill the byte array with random data and write it to the file.
@@ -71,6 +75,9 @@ public class GenFile {
 				if (numBytesLeft <= 0){
 					break;
 				}
+				
+				// Flush the output so we don't run out of memory.
+				fos.flush();
 			}
 			fos.close();
 		}catch (FileNotFoundException e){
